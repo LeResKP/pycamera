@@ -45,6 +45,8 @@ class VideoStream(Thread):
             self.frame = frame
             time.sleep(0.1)
 
+        self.video_stream.release()
+
 
 stream = VideoStream()
 
@@ -89,7 +91,28 @@ class HttpHandler(SimpleHTTPRequestHandler):
             self.wfile.write(content)
             time.sleep(0.1)
 
+    def _start(self):
+        global stream
+        if not stream:
+            stream = VideoStream()
+            stream.start()
+
+    def _stop(self):
+        global stream
+        if stream:
+            stream.stop()
+            stream = None
+
     def do_GET(self):
+        if self.path == '/start':
+            return self._start()
+
+        if self.path == '/stop':
+            return self._stop()
+
+        if not stream:
+            return self.send_response(404)
+
         if self.path == '/screenshot':
             return self._screenshot()
 
@@ -111,7 +134,8 @@ def main():
         server.serve_forever()
     except KeyboardInterrupt:
         server.shutdown()
-        stream.stop()
+        if stream:
+            stream.stop()
 
 
 if __name__ == '__main__':
